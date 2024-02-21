@@ -40,8 +40,8 @@ const createCollection = async (similarity_metric: SimilarityMetric = 'cosine') 
 
 const loadSampleData = async (similarity_metric: SimilarityMetric = 'cosine') => {
   const collection = await astraDb.collection(`chat_${similarity_metric}`);
-  for await (const { url, title, content} of sampleData) {
-    const chunks = await splitter.splitText(content);
+  for await (const { date_and_time, host, description, event_type, url, rsvp, location} of sampleData) {
+    const chunks = await splitter.splitText(description);
     let i = 0;
     for await (const chunk of chunks) {
       const {data} = await openai.embeddings.create({input: chunk, model: 'text-embedding-ada-002'});
@@ -49,9 +49,13 @@ const loadSampleData = async (similarity_metric: SimilarityMetric = 'cosine') =>
       const res = await collection.insertOne({
         document_id: `${url}-${i}`,
         $vector: data[0]?.embedding,
+        date_and_time,
+        host,
+        rsvp,
         url,
-        title,
-        content: chunk
+        event_type,
+        location,
+        description: chunk
       });
       i++;
     }
@@ -61,4 +65,5 @@ const loadSampleData = async (similarity_metric: SimilarityMetric = 'cosine') =>
 
 similarityMetrics.forEach(metric => {
   createCollection(metric).then(() => loadSampleData(metric));
+  // createCollection(metric)
 });
